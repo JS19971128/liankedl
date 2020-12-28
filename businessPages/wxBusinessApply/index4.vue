@@ -1,0 +1,677 @@
+<template>
+	<view class="bg">
+		<view class="fz-12 top">
+			<view class="step flex_center">
+				<view class="step-item active flex_center" @click="clickURl('/businessPages/wxBusinessApply/index')">
+					<view class="num flex_center">1</view>
+					<view class="">法人信息</view>
+				</view>
+				<view class="line">----</view>
+				<view class="step-item active flex_center" @click="clickURl('/businessPages/wxBusinessApply/index2')">
+					<view class="num flex_center">2</view>
+					<view class="">商家信息</view>
+				</view>
+				<view class="line">----</view>
+				<view class="step-item active flex_center" @click="clickURl('/businessPages/wxBusinessApply/index3')">
+					<view class="num flex_center">3</view>
+					<view class="">银行信息</view>
+				</view>
+				<view class="line">----</view>
+				<view class="step-item active flex_center">
+					<view class="num flex_center">
+						<uni-icons class="flex_center" type="checkmarkempty" :size="24" color="#999999"></uni-icons>
+					</view>
+					<view class="">店铺设置</view>
+				</view>
+			</view>
+		</view>
+		<view class="info fz-14">
+			<view class="title">商家信息</view>
+			<view class="main">
+				<!-- 所属行业 -->
+				<view class="item flex_center">
+					<view class="item-name">所属行业</view>
+					<view class="item-content ">
+						<!-- 所属行业类型选择 -->
+						<picker mode="selector" :range="industryList" range-key="name" @change="bindChange">
+							<view class="flex_between">
+								<view>
+									<input type="text" v-model="shopIndex.shopBusinessName" disabled placeholder="请选择所属行业" placeholder-style="color:#CBCBCB;font-size:28rpx"/>
+								</view>
+								<view>
+									<image src="https://lianketong.oss-cn-shenzhen.aliyuncs.com/wx_images/common/xiala.png" mode="widthFix"></image>
+								</view>
+							</view>
+						</picker>
+					</view>
+				</view>
+				<!-- 让利比率 -->
+				<view class="item flex_center">
+					<view class="item-name">让利比率</view>
+					<view class="item-content">
+						<view class="flex_between">
+							<view class="rate">
+								<input v-model="shopIndex.profits" type="number" placeholder="请输入5%-30%范围内的让利比率" placeholder-style="color:#CBCBCB;font-size:28rpx"/>
+							</view>
+							<view>%</view>
+						</view>
+					</view>
+				</view>
+				<!-- 所在地区 -->
+				<view class="item flex_center" @click="show=true">
+					<view class="item-name">店铺地址</view>
+					<view class="item-content">
+						<input type="text" v-model="shopIndex.area" disabled placeholder="请选择店铺地址" placeholder-style="color:#CBCBCB;font-size:28rpx"/>
+					</view>
+				</view>
+				<!-- 详细地址 -->
+				<view class="item flex_center" @click="goMap">
+					<view class="item-name">详细地址</view>
+					<view class="item-content flex_center">
+						<image class="location" src="https://lianketong.oss-cn-shenzhen.aliyuncs.com/wx_images/common/location.png" mode="widthFix"></image>
+						<view class="address" v-if="shopIndex.address">{{shopIndex.address}}</view>
+						<view class="flex_center" v-else>
+							<input type="text" :disabled="true" placeholder="点击前往地图选择" placeholder-style="color:#CBCBCB;font-size:14px;line-height:14px"/>
+						</view>
+					</view>
+				</view>
+				<!-- 营业时间 -->
+				<view class="item flex_center">
+					<view class="item-name">营业时间</view>
+					<view class="item-content flex_center">
+						<view class="">
+							<!-- 营业时间选择 -->
+							<picker mode="time" @change="startDateChange">
+								<view class="flex_between" :class="{date:shopIndex.shopStartTime=='',active:shopIndex.shopStartTime!==''}">{{shopIndex.shopStartTime||'开始时间'}}</view>
+							</picker>
+						</view>
+						<view class="line">—</view>
+						<view class="">
+							<!-- 营业时间选择 -->
+							<picker mode="time" @change="stopDateChange">
+								<view class="flex_between" :class="{date:shopIndex.shopStopTime=='',active:shopIndex.shopStopTime!==''}">{{shopIndex.shopStopTime||'结束时间'}}</view>
+							</picker>
+						</view>
+					</view>
+				</view>
+				<!-- 门头照 -->
+				<view class="item flex_center">
+					<view class="item-name">门头照</view>
+					<view class="item-content flex_center fz-12">
+						<view class="upload flex_center">
+							<!-- 正面 -->
+							<view class="uploadPic flex_center" v-if="shopIndex.positive" @click="upload('positive')">
+								<image :src="shopIndex.positive" mode="aspectFit"></image>
+							</view>
+							<view class="frame flex_center" v-else @click="upload('positive')" >
+								<uni-icons class="flex_center" type="plusempty" :size="24" color="#CBCBCB"></uni-icons>
+							</view>
+						</view>
+					</view>
+				</view>
+				<!-- 店内照片 -->
+				<view class="item flex_center">
+					<view class="item-name">店内照片</view>
+					<view class="item-content flex_center fz-12">
+						<view class="upload flex_center">
+							<!-- 正面 -->
+							<view class="uploadPic flex_center" v-if="shopIndex.decoratePic" @click="upload('decoratePic')">
+								<image :src="shopIndex.decoratePic" mode="aspectFit"></image>
+							</view>
+							<view class="frame flex_center" v-if="!shopIndex.decoratePic" @click="upload('decoratePic')" >
+								<uni-icons class="flex_center" type="plusempty" :size="24" color="#CBCBCB"></uni-icons>
+							</view>
+						</view>
+					</view>
+				</view>
+				<!-- 商家相册 -->
+				<view class="item flex_center">
+					<view class="item-name">商家相册</view>
+					<view class="item-content flex_center fz-12">
+						<!-- 反面 -->
+						<view class="upload" style="flex-direction: column;display: flex;">
+							<!-- 正面 -->
+							<view class="uploadPic flex_center" v-if="shopIndex.piclist" @click="upload('piclist')">
+								<image :src="shopIndex.piclist" mode="aspectFit"></image>
+							</view>
+							<view class="frame flex_center" v-else @click="upload('piclist')">
+								<uni-icons class="flex_center" type="plusempty" :size="24" color="#CBCBCB"></uni-icons>
+							</view>
+							<!-- <view class="mt10 flex_center">请上传1张门店室内照，才可通过审核喔~</view> -->
+						</view>
+					</view>
+				</view>
+				
+<!--				<view class="item flex_center">-->
+<!--					<view class="item-name">客户协议书</view>-->
+<!--					<view class="item-content flex_center fz-12">-->
+<!--						&lt;!&ndash; 反面 &ndash;&gt;-->
+<!--						<view class="upload" style="flex-direction: column;display: flex;">-->
+<!--							&lt;!&ndash; 正面 &ndash;&gt;-->
+<!--							<view class="uploadPic flex_center" v-if="shopIndex.openWishPic" @click="upload('openWishPic')">-->
+<!--								<image :src="shopIndex.openWishPic" mode="aspectFit"></image>-->
+<!--							</view>-->
+<!--							<view class="frame flex_center" v-else @click="upload('openWishPic')">-->
+<!--								<uni-icons class="flex_center" type="plusempty" :size="24" color="#CBCBCB"></uni-icons>-->
+<!--							</view>-->
+<!--							&lt;!&ndash; <view class="mt10 flex_center">请上传1张门店室内照，才可通过审核喔~</view> &ndash;&gt;-->
+<!--						</view>-->
+<!--					</view>-->
+<!--				</view>-->
+			</view>
+		</view>
+		<view class="service fz-12"><view class="shop-title-check checkbox" :class="{'active':isActive}" @click="txtParentActive()"></view><text>同意并确认</text><text class="agreement" @click="goService">《链客通商家版协议政策》</text></view>
+		<view class="btn fz-14 flex_center bc" @click="submit">保存</view>
+		<view class="btn fz-14 flex_center" @click="submit(true)">提交审核</view>
+		<!-- 地区选择 -->
+		<w-picker
+			class="address"
+			mode="region" 
+			:visible.sync="show" 
+			:value="shopIndex.defaultRegion"
+			default-type="label"
+			@confirm="onConfirm($event,'region')" 
+			@cancel="onCancel" 
+			ref="region" 
+		></w-picker>
+	</view>
+</template>
+
+<script>
+	export default{
+		data() {
+			return {
+				industryList:[],
+				show:false,
+				isActive:false,
+			}
+		},
+		computed:{
+			legalPerson(){
+				return this.$store.state.shop.legalPerson;
+			},
+			enterprise(){
+				return this.$store.state.shop.enterprise;
+			},
+			bank(){
+				return this.$store.state.shop.bank;
+			},
+			merchantCredential(){
+				return this.$store.state.shop.merchantCredential;
+			},
+			userId(){
+				return this.$store.state.userInfo.id;
+			},
+			shopIndex(){
+				return this.$store.state.shop.shopIndex;
+			}
+		},
+		methods:{ 
+			onConfirm($event){ //省市区选择
+				console.log($event)
+				this.shopIndex.area = $event.obj.province.label + ' ' + $event.obj.city.label + ' ' + $event.obj.area.label;
+				let adcode = $event.value[2];
+				this.shopIndex.areaCode = adcode.substring(0,2);
+				this.shopIndex.areaCodeCity = adcode.substring(0,4);
+				this.shopIndex.areaCodeAreas = adcode;
+				
+				this.shopIndex.comProvinceName = $event.obj.province.label;
+				this.shopIndex.comCityName = $event.obj.city.label;
+			},
+			onCancel(){
+				this.show = false;
+			},
+			goMap(){ //导航
+				uni.chooseLocation({
+					success:res=>{
+						console.log(res)
+						this.shopIndex.address = res.address;
+						this.shopIndex.latitude = res.latitude;
+						this.shopIndex.longitude = res.longitude;
+					}
+				})
+			},
+			getBusinessList(){  //获取行业列表
+				this.$fly.get('/ShopBusiness/list')
+				.then(res=>{
+					if(res.code == 0){
+						this.industryList = res.data.content;
+					}
+				})
+			},
+			// 选择证件类型
+			bindChange($event){
+				this.shopIndex.shopBusinessName = this.industryList[$event.detail.value].name
+				this.shopIndex.shopBusinessId = this.industryList[$event.detail.value].id
+			},
+			clickURl(url){
+				this.submit()
+				uni.redirectTo({
+					url
+				})
+			},
+			txtParentActive(){
+				this.isActive = !this.isActive;
+			},
+			goService(){  //进入商家隐私政策
+				uni.navigateTo({
+					url: '/businessPages/wxBusinessApply/help'
+				})
+			},
+			// 上传证件照
+			upload(type){
+				uni.chooseImage({
+					count:1,
+					success: res => {
+						let file = res.tempFilePaths[0];
+						uni.getFileInfo({
+							filePath:file,
+							success: (res) => {
+								if(res.size < 5000||res.size>1048576){
+									uni.showToast({
+										title:'请上传5k - 1M的图片'
+									})
+								}else{
+									uni.uploadFile({
+										url: `${this.$store.state.baseUrl}/upload/?serviceType=user`,
+										filePath: file,
+										fileType: 'image',
+										name:' file',
+										success:res=>{
+											if(res.statusCode.toString().startsWith(2)){
+												let url = JSON.parse(res.data).data;
+												this.shopIndex[type] = url;
+											}else{
+												uni.showToast({
+													title:`抱歉，错误${res.statusCode}，图片上传失败，请稍后再试`,
+													duration:2500,
+													icon:'none'
+												})
+											}
+										},
+									})
+								}
+							}
+						})
+					}
+				})
+			},
+			// 选择起始日期
+			startDateChange($event){
+				this.shopIndex.shopStartTime = $event.detail.value;
+			},
+			// 选择结束日期
+			stopDateChange($event){
+				this.shopIndex.shopStopTime = $event.detail.value;
+			},
+			submit(go){
+				console.log(go===true,go)
+				const {shopIndex} = this;
+				let data = {
+					...shopIndex,
+					contactAddress:shopIndex.address,
+					// openWishPic:shopIndex.openWishPic,
+					doorPic:shopIndex.positive,
+					decoratePic:shopIndex.decoratePic,
+					storePic:shopIndex.piclist,
+					storePic2:shopIndex.piclist
+				}
+				for(let i in data){
+					if(data[i]===''){
+						wx.showToast({
+						  title:'请填写完整所有信息',
+						  icon: 'none',
+						  duration: 2500
+						})
+						return ;
+					}
+				}
+				if(this.shopIndex.profits < 5 || this.shopIndex.profits > 30){
+					uni.showToast({
+						title:'请输入5%-30%范围内的让利比率',
+						icon: 'none'
+					})
+					return ;
+				}
+				
+				this.$store.commit('SETSHOPINDEX',data);
+				if(go==true){
+					let {legalPerson,enterprise,bank,merchantCredential,userId,isActive} = this;
+					
+					if(!legalPerson.corporateName){
+						wx.showToast({
+						  title:'请完善信息',
+						  icon: 'none',
+						  duration: 2500
+						})
+						return ;
+					}
+					if(!enterprise.jylxLabel){
+						wx.showToast({
+						  title:'请完善信息',
+						  icon: 'none',
+						  duration: 2500
+						})
+						return ;
+					}
+					if(!bank.bankName){
+						wx.showToast({
+						  title:'请完善信息',
+						  icon: 'none',
+						  duration: 2500
+						})
+						return ;
+					}
+					
+					if(!isActive){
+						wx.showToast({
+						  title:'请勾选链客通商家版协议政策！',
+						  icon: 'none',
+						  duration: 2500
+						})
+						return ;
+					}
+					
+					
+					let enterPicParam  = {
+						doorPic:shopIndex.positive,
+						decoratePic:shopIndex.decoratePic,
+						storePic:shopIndex.piclist,
+						storePic2:shopIndex.piclist,
+						openWishPic:shopIndex.openWishPic
+					};
+					for(let i of merchantCredential){
+						enterPicParam[i.credentialType] = i.credentialUrl;
+					}
+					
+					//客户协议书为空时加入链客通logo
+					// enterPicParam.openWishPic =  enterPicParam.openWishPic || 'https://xlzx.oss-cn-shenzhen.aliyuncs.com/user/20201108155146753_wx4e73a1440b640836.o6zAJs8hMULqT-LBRLQieCdAQK3k.16LWqAao7tjieedaa32bb4c51cfd2eb0af4f14cc53db.png'
+					
+					// let idCardStartDate = legalPerson.idCardStartDate.split('-');
+					// let idCardEndDate = legalPerson.idCardEndDate.split('-');
+					// let businessDateStart = enterprise.businessDateStart;
+					// let businessDateLimit = enterprise.businessDateLimit;
+					
+					enterprise.licenseValidType = enterprise.jyqxLabel;
+					
+					if(enterprise.jyqxLabel === '长期'){
+						enterprise.licenseExpiredDate = '长期';
+						enterprise.licenseValidType = 2;
+					}else{
+						enterprise.licenseValidType = 1;
+						enterprise.licenseExpiredDate = enterprise.businessDateLimit
+					}
+					
+					let prams = {
+						registeredAddress :'',
+						...data,
+						...legalPerson,
+						...enterprise,
+						...bank,
+						registeredCapital :'',
+						businessScope :'',
+						// idCardStartDate:idCardStartDate.join(''),
+						// idCardEndDate:idCardEndDate.join(''),
+						// businessDateStart:businessDateStart.join(''),
+						// businessDateLimit:businessDateLimit.join(''),
+						accountType:0,
+						
+						userId,
+						appPayType:'WXPAY',
+						enterPicParam,
+					}
+					
+					//对公账户传商家全称
+					if(prams.zhlxLabel==='对公账户'){
+						prams.cardName = prams.companyName;
+						prams.accountType = 1
+					}else{
+						prams.cardName = prams.corporateName;
+					}
+					if (prams.comType === '2') {
+						prams.reg_addr = prams.contactAddress
+					}
+					// if(go===true){
+						this.stm(prams);
+					// }
+				}else{
+					uni.showToast({
+					    title: '保存成功！',
+					    duration: 2000,
+						icon:'none'
+					});
+				}
+			},
+			async stm(prams){
+				console.log(prams)
+				// if (true) return
+				try{
+					uni.showLoading({
+						title:'加载中'
+					})
+					let doEntry = await this.$fly.post('/adapayEnter/enter',prams);
+					console.log(doEntry)
+					if(doEntry.code!=0){
+						uni.showToast({
+						    title:doEntry.message,
+						    duration: 2000,
+							icon:'none'
+						});
+						return ;
+					}
+					
+					// if(doEntry.data.errorcode!='0000'){
+					// 	uni.showToast({
+					// 	    title:doEntry.data.errormessage,
+					// 	    duration: 2000,
+					// 		icon:'none'
+					// 	});
+					// 	return ;
+					// }
+					
+					// if(doEntry.data.data.entryStatus!=='AUDITED'){
+					// 	uni.showToast({
+					// 	    title:'资料不正确，请填写真实的资料',
+					// 	    duration: 2000,
+					// 		icon:'none'
+					// 	});
+					// 	return ;
+					// }
+					var status = 1
+					uni.redirectTo({
+						url:`/businessPages/review/index?status=${status}&note=已提交`
+					})
+				}catch(e){
+					console.log(e)
+					uni.showToast({
+					    title: '数据异常，请稍后重试！',
+					    duration: 2000,
+						icon:'none'
+					});
+				}finally{
+				}
+			}
+		},
+		onLoad() {
+			this.getBusinessList()
+		}
+	}
+</script>
+
+<style lang="scss" scoped>
+	.bg{
+		background: #eee;
+		padding-bottom: 30rpx;
+	}
+	.top{
+		padding: 50rpx 0;
+		background: #fff;
+		border-top: 2rpx solid #D3D3D3;
+	}
+	.step{
+		width: 590rpx;
+		margin: 0 auto;
+		justify-content: flex-start;
+		line-height: 50rpx;
+		color: #999999;
+		.line{
+			height: 90rpx;
+			vertical-align: center;
+		}
+		.step-item{
+			flex-direction: column;
+			.num{
+				width: 90rpx;
+				height: 90rpx;
+				border: 2rpx solid #999999;
+				border-radius: 50%;
+				background: #fff;
+			}
+		}
+		.active{
+			color: #FF9D11;
+			.num{
+				border: 2rpx solid #FF9D11;
+				background: #FF9D11;
+				color: #fff;
+			}
+		}
+	}
+	.info{
+		line-height: 28rpx;
+		.title{
+			color: #999999;
+			padding: 20rpx;
+		}
+		.main{
+			.item{
+				justify-content: flex-start;
+				background: #fff;
+				padding: 30rpx 20rpx;
+				// height: 100rpx;
+				border-bottom: 2rpx solid #D3D3D3;
+				.item-name{
+					color: #999999;
+					width: 20%;
+				}
+				.item-content{
+					justify-content: flex-start;
+					color: #333;
+					width: 80%;
+					.rate{
+						width: 90%;
+					}
+					input{
+						width: 90%;
+						color: #333;
+						height: 28rpx;
+						line-height: 28rpx;
+					}
+					image{
+						width: 24rpx;
+						display: block;
+					}
+					.line{
+						color:#999 ;
+						margin: 0 10rpx;
+					}
+					.date{
+						color: #CBCBCB;
+					}
+					.active{
+						color: #333;
+					}
+					.upload{
+						// flex-direction: column;
+						justify-content: flex-start;
+						color: #CBCBCB;
+						// margin-right: 30rpx;
+						line-height: 24rpx;
+						flex-wrap: wrap;
+						.pic_list{
+							margin-right: 20rpx;
+							margin-bottom: 10rpx;
+							image{
+								width: 120rpx;
+								height: 120rpx;
+								display: block;
+							}
+						}
+						.frame{
+							width: 120rpx;
+							height: 120rpx;
+							border: 2rpx dashed #CBCBCB;
+							// margin-bottom: 10rpx;
+						}
+						.uploadPic{
+							width: 120rpx;
+							height: 120rpx;
+							// margin-bottom: 10rpx;
+							image{
+								width: 120rpx;
+								height: 120rpx;
+								display: block;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	.btn{
+		width: 670rpx;
+		height: 74rpx;
+		border-radius: 37rpx;
+		background: #FF9D11;
+		color: #fff;
+		margin: 0 auto;
+		margin-top: 30rpx;
+		box-sizing: border-box;
+		&.bc{
+			background: #fff;
+			color: #FF9D11;
+			border: solid 2rpx #FF9D11;
+		}
+	}
+	.service{
+		line-height: 32rpx;
+		text-align: center;
+		margin-top: 30rpx;
+		display: -webkit-box;
+		display: -webkit-flex;
+		display: flex;
+		color: #999999;
+		align-content: center;
+		justify-content: center;
+
+		.agreement{
+			color: #50A9E6;
+		}
+	}
+	.checkbox{
+		width:32rpx;
+		height:32rpx;
+		border:2rpx solid rgba(204, 204, 204, 1);
+		border-radius:50%;
+		margin-right: 20rpx;
+		&.active{
+			background: #FFAD5D;
+			position: relative;
+			border-color:#FFAD5D ;
+			&::before{
+				content: "";
+				position: absolute;
+				background: url(https://lianketong.oss-cn-shenzhen.aliyuncs.com/wx_images/shop/check.png) no-repeat;
+				background-size: 16rpx 16rpx;
+				width: 16rpx;
+				height: 16rpx;
+				left: 50%;
+				top: 50%;
+				transform: translate(-50%,-50%);
+			}
+		}
+	}
+	.mt10{
+		margin-top: 20rpx;
+	}
+</style>
